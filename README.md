@@ -3,11 +3,12 @@ C++ wrapper for accessing libcamera for h264 and lowres callbacks
 
 You can build as follows:
 
+```
   mkdir build
   cd build
   cmake ..
   make
-
+```
 
 
 A sample application, called vid_test, shows how libcamlite can be used to quickly get up and running.  If you run, besure you have a good enough camera attached. You should see output like the following:
