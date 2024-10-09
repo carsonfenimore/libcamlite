@@ -13,7 +13,7 @@ You can build as follows:
 
 A sample application, called vid_test, shows how libcamlite can be used to quickly get up and running.  If you run, besure you have a good enough camera attached. You should see output like the following:
 
-
+```
   carson@dev-1:~ $ ./vid_test 
   Made DRM preview window
   [169:15:16.185533996] [12293]  INFO Camera camera_manager.cpp:316 libcamera v0.3.1+50-69a894c4
@@ -36,6 +36,6 @@ A sample application, called vid_test, shows how libcamlite can be used to quick
   VidTest: h264 received 29.98 fps 262106 bytes/sec
   Vidtest: lowres received 30.00 fps
   VidTest: h264 received 30.06 fps 249294 bytes/sec
-
+```
 
 Note this shows an excellent 30fps of both h264 (full 1920x1080 frame rate) and 300x300 lowres RGB!  This is acheived in under .08 loading (<10%) of a rpi zero 2w. Very nice.
