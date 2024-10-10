@@ -1,7 +1,8 @@
 # libcamlite
-libcamlite is a C++ wrapper for accessing libcamera for h264 and lowres callbacks. 
+libcamlite is a C++ wrapper for creating parallel h264 (1080p and beyond) and RGB (low res for AI object detection) using a raspberry pi.
 
-Have you ever wanted to get both h264 and run object detection, such as tensorflow or pytorch?  Most libraries that allow this do not provide both streams simulatenously, requiring the application to either decode or re-encode.  libcamlite solves this by providing both streams.  It does this using the excellent ISP/VideoCore already inside the raspberry pi.  It is largely based off rpicam apps, which has a post proc pipeline built in.  
+Have you ever wanted to stream both h264 and run object detection simultaneously on a raspberry pi?  Most examples for doing this rely on opencv or external applications such as rpicam apps.  With libcamlite you can setup parallel streams, one for display (h264) and one for object detection. The library is quick and efficient - consuming less than 10% CPU. 
+
 
 ## Prerequisites
 You will need a current version of libcamera (https://github.com/raspberrypi/libcamera.git) and rpicam-apps (https://github.com/raspberrypi/rpicam-apps.git).  We are currently building against versions tag v0.3.1+rpt20240906 and 1.5.1, respectively.
@@ -16,9 +17,16 @@ You can build as follows:
   make
 ```
 
+On very constrained platforms, such as the pi zero 2 w, I recommend setting up a cross compiler.  Roughly the easiest way I have found to do this is:
+  - Make an ubuntu vm
+  - use sbuild/chroot to make a bullseye arm64 environment
+  - apt install all needed dependencies
+
+This will be slower than, say, native per core - but given enough cores and ram it will allow libcamera, rpicam-apps, and libcamlite to all build in minutes rather than hours.
+
 ## Demo
 
-A sample application, called vid_test, shows how libcamlite can be used to quickly get up and running.  If you run, besure you have a good enough camera attached. You should see output like the following:
+A sample application, called vid_test, shows how libcamlite can be used to quickly get up and running.  It should output something like the following:
 
 ```
   carson@dev-1:~ $ ./vid_test 
