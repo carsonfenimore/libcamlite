@@ -5,84 +5,74 @@
 
 #include "libcamlite.hpp"
 
-using namespace std::placeholders;
+using namespace libcamlite;
 
-class VidTest {
-private:
-	std::unique_ptr<LibCamLite> app;
+unsigned int bytesTotal = 0;
+unsigned int framesTotal = 0;
+const unsigned int FPS_REPORT_SECS = 2;
+std::chrono::time_point<std::chrono::steady_clock> last =  std::chrono::steady_clock::now();
 
-	unsigned int bytesTotal = 0;
-	unsigned int framesTotal = 0;
-	const unsigned int FPS_REPORT_SECS = 2;
-	std::chrono::time_point<std::chrono::steady_clock> last =  std::chrono::steady_clock::now();
+unsigned int detectionTotal = 0;
+unsigned int detectionGlobal = 0;
+const unsigned int DETECT_REPORT_SECS = 2;
+std::chrono::time_point<std::chrono::steady_clock> lastDetect =  std::chrono::steady_clock::now();
 
-	CamParam h264Config;
-	CamParam lowresConfig;
-
-	unsigned int detectionTotal = 0;
-	unsigned int detectionGlobal = 0;
-	const unsigned int DETECT_REPORT_SECS = 2;
-	std::chrono::time_point<std::chrono::steady_clock> lastDetect =  std::chrono::steady_clock::now();
-
-public:
-	VidTest(){
-		h264Config.width = 1280;
-		h264Config.height = 720;
-		h264Config.h264Bitrate = "2mbps";
-		h264Config.h264IntraPeriod = 5;
-		h264Config.framerate = 30;
-		h264Config.h264Profile = "high";
-		lowresConfig.width = 300;
-		lowresConfig.height= 300;
-
-		app = std::make_unique<LibCamLite>(h264Config, std::bind(&VidTest::h264Callback, this, _1, _2, _3, _4), 
-				lowresConfig, std::bind(&VidTest::lowresCallback, this, _1)); 
+void h264Callback(uint8_t* mem, size_t size, int64_t timestamp_us, bool keyframe){
+	auto now =  std::chrono::steady_clock::now();
+	auto delta = std::chrono::duration<double, std::milli>(now - last);
+	float deltaSecs = delta.count()/1000.0;
+	framesTotal++;
+	bytesTotal += size;
+	if (deltaSecs > FPS_REPORT_SECS){
+		printf("VidTest: h264 received %.2f fps %d bytes/sec\n", framesTotal / deltaSecs, (int)(bytesTotal / deltaSecs));
+		last = now;
+		bytesTotal = 0;
+		framesTotal = 0;
 	}
+}
 
-	void run(){
-		app->start();
+std::string to_zero_lead(const int value, const unsigned precision)
+{
+     std::ostringstream oss;
+     oss << std::setw(precision) << std::setfill('0') << value;
+     return oss.str();
+}
+
+void lowresCallback(uint8_t* mem, size_t size) {
+	const unsigned int numChans = 3;
+	//detect->detect(mem, lowresConfig.width, lowresConfig.height, numChans);
+	auto now =  std::chrono::steady_clock::now();
+	auto delta = std::chrono::duration<double, std::milli>(now - lastDetect);
+	float deltaSecs = delta.count()/1000.0;
+	detectionTotal++;
+	detectionGlobal++;
+	if (deltaSecs > DETECT_REPORT_SECS){
+		printf("Vidtest: lowres received %.2f fps\n", detectionTotal / deltaSecs);
+		lastDetect = now;
+		detectionTotal= 0;
 	}
+}
 
-private:
-	void h264Callback(void* mem, size_t size, int64_t timestamp_us, bool keyframe){
-		auto now =  std::chrono::steady_clock::now();
-		auto delta = std::chrono::duration<double, std::milli>(now - last);
-		float deltaSecs = delta.count()/1000.0;
-		framesTotal++;
-		bytesTotal += size;
-		if (deltaSecs > FPS_REPORT_SECS){
-			printf("VidTest: h264 received %.2f fps %d bytes/sec\n", framesTotal / deltaSecs, (int)(bytesTotal / deltaSecs));
-			last = now;
-			bytesTotal = 0;
-			framesTotal = 0;
-		}
-	}
+int main(int argc, char** argv){
+	H264Params h264Config;
 
-	std::string to_zero_lead(const int value, const unsigned precision)
-	{
-	     std::ostringstream oss;
-	     oss << std::setw(precision) << std::setfill('0') << value;
-	     return oss.str();
-	}
+	h264Config.stream.width = 1280;
+	h264Config.stream.height = 720;
+	h264Config.bitrate = "2mbps";
+	h264Config.intraPeriod = 5;
+	h264Config.stream.framerate = 30;
+	h264Config.profile = "high";
+	h264Config.callback = &h264Callback;
+	setupH264Stream(h264Config);
 
-	void lowresCallback(const std::vector<uint8_t>& mem){
-		const unsigned int numChans = 3;
-		//detect->detect(mem, lowresConfig.width, lowresConfig.height, numChans);
-		auto now =  std::chrono::steady_clock::now();
-		auto delta = std::chrono::duration<double, std::milli>(now - lastDetect);
-		float deltaSecs = delta.count()/1000.0;
-		detectionTotal++;
-		detectionGlobal++;
-		if (deltaSecs > DETECT_REPORT_SECS){
-			printf("Vidtest: lowres received %.2f fps\n", detectionTotal / deltaSecs);
-			lastDetect = now;
-			detectionTotal= 0;
-		}
-	}
-};
+	LowResParams lowresConfig;
+	lowresConfig.stream.width = 300;
+	lowresConfig.stream.height= 300;
+	setupLowresStream(lowresConfig);
+	lowresConfig.callback = &lowresCallback;
+	setupLowresStream(lowresConfig);
 
-int main(int, char**){
-	VidTest test;
-	test.run();
+	start();
+
 	return 0;
 }

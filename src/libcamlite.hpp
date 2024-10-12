@@ -4,34 +4,41 @@
 #include <functional>
 #include <memory>
 
+namespace libcamlite {
+
 enum StreamFormat {
 	STREAM_FORMAT_RGB,
 	STREAM_FORMAT_H264,
 	STREAM_FORMAT_YUV420
 };
 
-struct CamParam {
+struct StreamParams {
 	int width;
 	int height;
 	StreamFormat format;
 	int framerate;
-
-	int h264IntraPeriod;
-	std::string h264Profile;
-	std::string h264Bitrate;
 };
-	
-typedef std::function<void (void* mem, size_t size, int64_t timestamp_us, bool keyframe)> H264Callback;
-typedef std::function<void (const std::vector<uint8_t>&)> LowResCallback;
 
-
-class LibCamLite {
-public:
-	LibCamLite(CamParam h264Config, H264Callback, CamParam lowresConfig, LowResCallback);
-	void start();
-	void stop();
-
-private:
-	class Impl;
-	std::shared_ptr<Impl> impl;
+typedef void (*LowResCallback)(uint8_t* mem, size_t size);
+struct LowResParams {
+	StreamParams stream;
+	LowResCallback callback;
 };
+
+typedef void (*H264Callback)(uint8_t* mem, size_t size, int64_t timestamp_us, bool keyframe);
+struct H264Params {
+	StreamParams stream;
+
+	int intraPeriod;
+	const char* profile;
+	const char* bitrate;
+	H264Callback callback;
+};
+
+
+void setupLowresStream(LowResParams lowresParams);
+void setupH264Stream(H264Params h264Params);
+void start();
+void stop();
+
+}
