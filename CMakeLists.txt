@@ -34,7 +34,7 @@ list(APPEND LCL_SRCS
     ${LCL_SOURCE_DIR}/yuv.cpp
     ${LCL_SOURCE_DIR}/post_proc.cpp
   )
-add_library(camlite STATIC ${LCL_SRCS})
+add_library(camlite SHARED ${LCL_SRCS})
 set(rpicamapp_include_dirs "/usr/local/include/rpicam-apps")
 target_include_directories(camlite PRIVATE "${rpicamapp_include_dirs}")
 target_include_directories(camlite PRIVATE "${libcamera_INCLUDE_DIRS}")
