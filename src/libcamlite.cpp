@@ -9,30 +9,33 @@
 
 namespace libcamlite {
 
-// Global vars
-RPiCamEncoder gApp;
-H264Params* gH264Params = NULL;
-LowResParams* gLowResParams = NULL;
+class LibCamLite::Impl {
+	friend LibCamLite;
 
-void setupLowresStream(LowResParams lowresParams){
+	Impl(): app(std::make_unique<RPiCamEncoder>()){}
+
+	std::unique_ptr<RPiCamEncoder> app;
+	std::unique_ptr<H264Params> h264Params;
+	std::unique_ptr<LowResParams> lowResParams;
+};
+
+LibCamLite::LibCamLite():impl(new Impl){}
+
+void LibCamLite::setupLowresStream(LowResParams lowresParams){
 	printf("Setup lowres %dx%d\n", lowresParams.stream.width, lowresParams.stream.height);
-	gLowResParams = new LowResParams(lowresParams);
+	impl->lowResParams = std::make_unique<LowResParams>(lowresParams);
 }
 
-void setupH264Stream(H264Params h264Params){
+void LibCamLite::setupH264Stream(H264Params h264Params){
 	printf("Setup h264 %dx%d profile %s\n", h264Params.stream.width, h264Params.stream.height, h264Params.profile);
-	gH264Params = new H264Params(h264Params);
+	impl->h264Params = std::make_unique<H264Params>(h264Params);
 }
 
-void h264Callback(void* mem, size_t size, int64_t timestamp_us, bool keyframe){
-	gH264Params->callback((uint8_t*)mem, size, timestamp_us, keyframe);
-}
-
-void start(){
+void LibCamLite::start(){
 	using namespace std::placeholders;  // for _1, _2, _3...
 						//
 	// From here we provide some sane defaults for libcamera - non-customizeable
-	VideoOptions *options = gApp.GetOptions();
+	VideoOptions *options = impl->app->GetOptions();
 	// 0sec = run forever
 	TimeVal<std::chrono::milliseconds> tv;
 	tv.set("0sec");
@@ -59,43 +62,48 @@ void start(){
 	// include headers on every frame
 	options->inline_headers = true; 
 
-	PostProc* proc = NULL;
-	if (gLowResParams){
+	std::unique_ptr<PostProc> proc;
+	if (impl->lowResParams){
 		// libcamlite-params are given from here 
-		options->lores_height = gLowResParams->stream.height;
-		options->lores_width = gLowResParams->stream.width;
-		proc = new PostProc(&gApp, gLowResParams->callback);
+		options->lores_height = impl->lowResParams->stream.height;
+		options->lores_width = impl->lowResParams->stream.width;
+		proc = std::make_unique<PostProc>(impl->app.get(), impl->lowResParams->callback);
 	}
 
-	if (gH264Params){
-	    options->framerate = gH264Params->stream.framerate;
-            options->width = gH264Params->stream.width;
-            options->height = gH264Params->stream.height;
+	if (impl->h264Params){
+	    options->framerate = impl->h264Params->stream.framerate;
+            options->width = impl->h264Params->stream.width;
+            options->height = impl->h264Params->stream.height;
 	    // h264-specific stuff below:
-            options->intra = gH264Params->intraPeriod;
-	    options->profile = gH264Params->profile;
+            options->intra = impl->h264Params->intraPeriod;
+	    options->profile = impl->h264Params->profile;
             Bitrate bitrate;
-	    bitrate.set(gH264Params->bitrate);
+	    bitrate.set(impl->h264Params->bitrate);
             options->bitrate = bitrate;
-            gApp.SetEncodeOutputReadyCallback(std::bind(&h264Callback, _1, _2, _3, _4));
+	    // lambda to cast void*mem to uint8_t*mem...
+	    std::function<void(void*, size_t, int64_t, bool)> cb = 
+		    [this](void* mem, size_t size, int64_t timestamp_us, bool keyframe) {
+			impl->h264Params->callback((uint8_t*)mem, size, timestamp_us, keyframe);
+		    };
+            impl->app->SetEncodeOutputReadyCallback(cb);
 	}
 
-	gApp.OpenCamera();
-	gApp.ConfigureVideo(RPiCamEncoder::FLAG_VIDEO_NONE);
-	gApp.StartEncoder();
-	gApp.StartCamera();
+	impl->app->OpenCamera();
+	impl->app->ConfigureVideo(RPiCamEncoder::FLAG_VIDEO_NONE);
+	impl->app->StartEncoder();
+	impl->app->StartCamera();
 	if (proc){
 		proc->Configure();
 	}
 
 	// Main processing loop
 	for (unsigned int count = 0; ; count++) {
-		RPiCamEncoder::Msg msg = gApp.Wait();
+		RPiCamEncoder::Msg msg = impl->app->Wait();
 		if (msg.type == RPiCamApp::MsgType::Timeout)
 		{
 			LOG_ERROR("ERROR: Device timeout detected, attempting a restart!!!");
-			gApp.StopCamera();
-			gApp.StartCamera();
+			impl->app->StopCamera();
+			impl->app->StartCamera();
 			continue;
 		}
 		if (msg.type == RPiCamEncoder::MsgType::Quit)
@@ -107,13 +115,13 @@ void start(){
 		if (proc){
 			proc->Process(completed_request);
 		}
-		gApp.EncodeBuffer(completed_request, gApp.VideoStream());
+		impl->app->EncodeBuffer(completed_request, impl->app->VideoStream());
 	}
 }
 
-void stop(){
-	gApp.StopCamera(); // stop complains if encoder very slow to close
-	gApp.StopEncoder();
+void LibCamLite::stop(){
+	impl->app->StopCamera(); // stop complains if encoder very slow to close
+	impl->app->StopEncoder();
 }
 
 
