@@ -13,10 +13,10 @@ enum StreamFormat {
 };
 
 struct StreamParams {
-	int width;
-	int height;
+	uint32_t width;
+	uint32_t height;
 	StreamFormat format;
-	int framerate;
+	uint8_t framerate;
 };
 
 typedef std::function<void(uint8_t* mem, size_t size)> LowResCallback;
