@@ -28,9 +28,9 @@ typedef std::function<void(uint8_t* mem, size_t size, int64_t timestamp_us, bool
 struct H264Params {
 	StreamParams stream;
 
-	int intraPeriod;
-	const char* profile;
-	const char* bitrate;
+	uint8_t intraPeriod;
+	std::string profile;
+	std::string bitrate;
 };
 
 class LibCamLite {
