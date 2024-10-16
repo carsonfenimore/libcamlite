@@ -22,14 +22,12 @@ public:
 		h264Config.intraPeriod = 5;
 		h264Config.stream.framerate = 30;
 		h264Config.profile = "high";
-		h264Config.callback = std::bind(&VidTest::h264Callback, this, _1, _2, _3, _4);
-		libcam.setupH264Stream(h264Config);
+		libcam.setupH264Stream(h264Config, std::bind(&VidTest::h264Callback, this, _1, _2, _3, _4));
 
 		LowResParams lowresConfig;
 		lowresConfig.stream.width = 300;
 		lowresConfig.stream.height= 300;
-		lowresConfig.callback = std::bind(&VidTest::lowresCallback, this, _1, _2);
-		libcam.setupLowresStream(lowresConfig);
+		libcam.setupLowresStream(lowresConfig, std::bind(&VidTest::lowresCallback, this, _1, _2));
 	}
 
 	void run(){

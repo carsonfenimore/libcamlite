@@ -22,7 +22,6 @@ struct StreamParams {
 typedef std::function<void(uint8_t* mem, size_t size)> LowResCallback;
 struct LowResParams {
 	StreamParams stream;
-	LowResCallback callback;
 };
 
 typedef std::function<void(uint8_t* mem, size_t size, int64_t timestamp_us, bool keyframe)> H264Callback;
@@ -32,14 +31,13 @@ struct H264Params {
 	int intraPeriod;
 	const char* profile;
 	const char* bitrate;
-	H264Callback callback;
 };
 
 class LibCamLite {
   public:
 	LibCamLite();
-	void setupLowresStream(LowResParams lowresParams);
-	void setupH264Stream(H264Params h264Params);
+	void setupLowresStream(LowResParams lowresParams, LowResCallback);
+	void setupH264Stream(H264Params h264Params, H264Callback);
 	void start();
 	void stop();
   private:

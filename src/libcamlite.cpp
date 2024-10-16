@@ -16,19 +16,23 @@ class LibCamLite::Impl {
 
 	std::unique_ptr<RPiCamEncoder> app;
 	std::unique_ptr<H264Params> h264Params;
+	H264Callback h264Callback;
 	std::unique_ptr<LowResParams> lowResParams;
+	LowResCallback lowResCallback;
 };
 
 LibCamLite::LibCamLite():impl(new Impl){}
 
-void LibCamLite::setupLowresStream(LowResParams lowresParams){
+void LibCamLite::setupLowresStream(LowResParams lowresParams, LowResCallback callback){
 	printf("Setup lowres %dx%d\n", lowresParams.stream.width, lowresParams.stream.height);
 	impl->lowResParams = std::make_unique<LowResParams>(lowresParams);
+	impl->lowResCallback = callback;
 }
 
-void LibCamLite::setupH264Stream(H264Params h264Params){
+void LibCamLite::setupH264Stream(H264Params h264Params, H264Callback callback){
 	printf("Setup h264 %dx%d profile %s\n", h264Params.stream.width, h264Params.stream.height, h264Params.profile);
 	impl->h264Params = std::make_unique<H264Params>(h264Params);
+	impl->h264Callback = callback;
 }
 
 void LibCamLite::start(){
@@ -67,7 +71,7 @@ void LibCamLite::start(){
 		// libcamlite-params are given from here 
 		options->lores_height = impl->lowResParams->stream.height;
 		options->lores_width = impl->lowResParams->stream.width;
-		proc = std::make_unique<PostProc>(impl->app.get(), impl->lowResParams->callback);
+		proc = std::make_unique<PostProc>(impl->app.get(), impl->lowResCallback);
 	}
 
 	if (impl->h264Params){
@@ -83,7 +87,7 @@ void LibCamLite::start(){
 	    // lambda to cast void*mem to uint8_t*mem...
 	    std::function<void(void*, size_t, int64_t, bool)> cb = 
 		    [this](void* mem, size_t size, int64_t timestamp_us, bool keyframe) {
-			impl->h264Params->callback((uint8_t*)mem, size, timestamp_us, keyframe);
+			impl->h264Callback((uint8_t*)mem, size, timestamp_us, keyframe);
 		    };
             impl->app->SetEncodeOutputReadyCallback(cb);
 	}
