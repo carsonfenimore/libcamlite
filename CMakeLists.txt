@@ -32,6 +32,7 @@ pkg_check_modules(libcamera REQUIRED libcamera)
 list(APPEND LCL_SRCS
     ${LCL_SOURCE_DIR}/libcamlite.cpp
     ${LCL_SOURCE_DIR}/yuv.cpp
+    ${LCL_SOURCE_DIR}/stream_info.cpp
     ${LCL_SOURCE_DIR}/post_proc.cpp
   )
 add_library(camlite SHARED ${LCL_SRCS})
@@ -39,29 +40,26 @@ set(rpicamapp_include_dirs "/usr/local/include/rpicam-apps")
 target_include_directories(camlite PRIVATE "${rpicamapp_include_dirs}")
 target_include_directories(camlite PRIVATE "${libcamera_INCLUDE_DIRS}")
 
-
+pkg_check_modules(libavformat REQUIRED libavformat)
+pkg_check_modules(libavutil REQUIRED libavutil)
 
 # TODO: Come back and use find package
 add_library( rpicamapp_libs SHARED IMPORTED )
 set_target_properties( rpicamapp_libs PROPERTIES IMPORTED_LOCATION "/usr/local/lib/aarch64-linux-gnu/rpicam_app.so")
-target_link_libraries( camlite rpicamapp_libs )
-
-# TODO: Come back and use find package
-#add_library( libcambase_libs SHARED IMPORTED )
-#set_target_properties( libcambase_libs PROPERTIES IMPORTED_LOCATION "/usr/local/lib/aarch64-linux-gnu/libcamera-base.so.0.3")
-#target_link_libraries( camlite libcambase_libs )
 
 # TODO: Come back and use find package
 add_library( boostprog SHARED IMPORTED )
 set_target_properties( boostprog PROPERTIES IMPORTED_LOCATION "/usr/lib/aarch64-linux-gnu/libboost_program_options.so.1.74.0")
 
+target_link_libraries(camlite "${libavformat_LIBRARIES}")
+target_link_libraries(camlite "${libavutil_LIBRARIES}")
 target_link_libraries(camlite "${libcamera_LIBRARIES}")
 target_link_libraries(camlite rpicamapp_libs)
 target_link_libraries(camlite boostprog)
+
 
 list(APPEND vidTestSrc
     ${LCL_SOURCE_DIR}/vid_test.cpp
   )
 add_executable(vid_test "${vidTestSrc}")
 target_link_libraries(vid_test camlite)
-

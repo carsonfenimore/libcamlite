@@ -4,6 +4,7 @@
 #include <iomanip>
 
 #include "libcamlite.hpp"
+#include "stream_info.hpp"
 
 using namespace libcamlite;
 
@@ -48,7 +49,20 @@ private:
 	const unsigned int DETECT_REPORT_SECS = 2;
 	std::chrono::time_point<std::chrono::steady_clock> lastDetect =  std::chrono::steady_clock::now();
 
+	bool discovered = false;
+	AVStream* stream = NULL;
+	StreamInfo streamInfo;
+
 	void h264Callback(uint8_t* mem, size_t size, int64_t timestamp_us, bool keyframe){
+		if (!discovered){
+			stream = streamInfo.analyze(mem, size);
+			if (stream) {
+				AVCodecParameters* cpar = stream->codecpar;
+				printf("Discovered stream; cpar %dx%d; time %d/%d\n", cpar->width, cpar->height, stream->time_base.num, stream->time_base.den);
+				discovered = true;
+			}
+		}
+
 		auto now =  std::chrono::steady_clock::now();
 		auto delta = std::chrono::duration<double, std::milli>(now - last);
 		float deltaSecs = delta.count()/1000.0;
