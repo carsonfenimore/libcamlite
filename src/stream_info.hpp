@@ -6,6 +6,8 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+namespace libcamlite {
+
 class StreamInfo {
 public:
 	StreamInfo();
@@ -18,3 +20,4 @@ private:
 
 };
 
+}

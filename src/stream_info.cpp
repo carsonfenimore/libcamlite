@@ -9,6 +9,8 @@ extern "C" {
 #include <libavutil/file.h>
 }
 
+namespace libcamlite {
+
 struct buffer_data {
     uint8_t *ptr;
     size_t size; ///< size left in the buffer
@@ -125,4 +127,6 @@ StreamInfo::StreamInfo():impl(std::make_shared<StreamInfo::Impl>()){}
 
 AVStream* StreamInfo::analyze(uint8_t* mem, size_t size){
 	return impl->analyze(mem, size);
+}
+
 }
