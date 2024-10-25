@@ -30,7 +30,7 @@ void LibCamLite::setupLowresStream(LowResParams lowresParams, LowResCallback cal
 }
 
 void LibCamLite::setupH264Stream(H264Params h264Params, H264Callback callback){
-	printf("Setup h264 %dx%d profile %s\n", h264Params.stream.width, h264Params.stream.height, h264Params.profile);
+	printf("Setup h264 %dx%d profile %s\n", h264Params.stream.width, h264Params.stream.height, h264Params.profile.c_str());
 	impl->h264Params = std::make_unique<H264Params>(h264Params);
 	impl->h264Callback = callback;
 }
