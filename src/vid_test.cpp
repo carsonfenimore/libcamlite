@@ -32,7 +32,7 @@ public:
 	}
 
 	void run(){
-		libcam.start();
+		libcam.start(false);
 	}
 
 

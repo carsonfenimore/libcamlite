@@ -11,6 +11,8 @@ static auto ExecutionTime(F &&f, Args &&... args)
 	return std::chrono::duration<double, R>(t2 - t1);
 }
 
+namespace libcamlite {
+
 PostProc::PostProc(RPiCamApp *app, libcamlite::LowResCallback callback_):
 	app_(app),
 	callback(callback_){
@@ -60,4 +62,6 @@ void PostProc::convertAndProcess(){
 	std::vector<uint8_t> rgb_image = Yuv420ToRgb(lores_copy_.data(), lores_info_, tf_info);
 
 	callback(rgb_image.data(), rgb_image.size());
+}
+
 }

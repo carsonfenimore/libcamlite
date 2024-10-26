@@ -38,7 +38,7 @@ class LibCamLite {
 	LibCamLite();
 	void setupLowresStream(LowResParams lowresParams, LowResCallback);
 	void setupH264Stream(H264Params h264Params, H264Callback);
-	void start();
+	void start(bool detach);
 	void stop();
   private:
 	class Impl;

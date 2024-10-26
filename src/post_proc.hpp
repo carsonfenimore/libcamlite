@@ -5,6 +5,7 @@
 
 #include <mutex>
 
+namespace libcamlite {
 
 // This represents a "post processing" stage in that it mirrors (and somewhat copies) the rpicamapps post_proc stages
 // The intent is that a consumer of this class can write their own post processor - this class will be what provides
@@ -25,3 +26,5 @@ private:
 	StreamInfo lores_info_;
 	libcamlite::LowResCallback callback;
 };
+
+}

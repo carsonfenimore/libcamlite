@@ -1,6 +1,7 @@
 #include "libcamlite.hpp"
 
 #include <functional>
+#include <thread>
 
 #include "core/libcamera_app.h"
 #include "core/libcamera_encoder.h"
@@ -19,6 +20,9 @@ class LibCamLite::Impl {
 	H264Callback h264Callback;
 	std::unique_ptr<LowResParams> lowResParams;
 	LowResCallback lowResCallback;
+	std::unique_ptr<PostProc> proc;
+
+	void run();
 };
 
 LibCamLite::LibCamLite():impl(new Impl){}
@@ -35,7 +39,7 @@ void LibCamLite::setupH264Stream(H264Params h264Params, H264Callback callback){
 	impl->h264Callback = callback;
 }
 
-void LibCamLite::start(){
+void LibCamLite::start(bool detach){
 	using namespace std::placeholders;  // for _1, _2, _3...
 						//
 	// From here we provide some sane defaults for libcamera - non-customizeable
@@ -66,12 +70,11 @@ void LibCamLite::start(){
 	// include headers on every frame
 	options->inline_headers = true; 
 
-	std::unique_ptr<PostProc> proc;
 	if (impl->lowResParams){
 		// libcamlite-params are given from here 
 		options->lores_height = impl->lowResParams->stream.height;
 		options->lores_width = impl->lowResParams->stream.width;
-		proc = std::make_unique<PostProc>(impl->app.get(), impl->lowResCallback);
+		impl->proc = std::make_unique<PostProc>(impl->app.get(), impl->lowResCallback);
 	}
 
 	if (impl->h264Params){
@@ -96,18 +99,24 @@ void LibCamLite::start(){
 	impl->app->ConfigureVideo(RPiCamEncoder::FLAG_VIDEO_NONE);
 	impl->app->StartEncoder();
 	impl->app->StartCamera();
-	if (proc){
-		proc->Configure();
+	if (impl->proc){
+		impl->proc->Configure();
 	}
 
-	// Main processing loop
-	for (unsigned int count = 0; ; count++) {
-		RPiCamEncoder::Msg msg = impl->app->Wait();
+	std::thread t([this]() { impl->run(); });
+	if (!detach){
+		t.join();
+	}
+}
+
+void LibCamLite::Impl::run(){
+	while (true) {
+		RPiCamEncoder::Msg msg = app->Wait();
 		if (msg.type == RPiCamApp::MsgType::Timeout)
 		{
 			LOG_ERROR("ERROR: Device timeout detected, attempting a restart!!!");
-			impl->app->StopCamera();
-			impl->app->StartCamera();
+			app->StopCamera();
+			app->StartCamera();
 			continue;
 		}
 		if (msg.type == RPiCamEncoder::MsgType::Quit)
@@ -119,7 +128,7 @@ void LibCamLite::start(){
 		if (proc){
 			proc->Process(completed_request);
 		}
-		impl->app->EncodeBuffer(completed_request, impl->app->VideoStream());
+		app->EncodeBuffer(completed_request, app->VideoStream());
 	}
 }
 
