@@ -13,7 +13,8 @@ namespace libcamlite {
 class LibCamLite::Impl {
 	friend LibCamLite;
 
-	Impl(): app(std::make_unique<RPiCamEncoder>()){}
+	Impl(): app(std::make_unique<RPiCamEncoder>()),
+		running(false){}
 
 	std::unique_ptr<RPiCamEncoder> app;
 	std::unique_ptr<H264Params> h264Params;
@@ -21,6 +22,8 @@ class LibCamLite::Impl {
 	std::unique_ptr<LowResParams> lowResParams;
 	LowResCallback lowResCallback;
 	std::unique_ptr<PostProc> proc;
+	std::unique_ptr<std::thread> runner; 
+	bool running;
 
 	void run();
 };
@@ -106,14 +109,15 @@ void LibCamLite::start(bool detach){
 		impl->proc->Configure();
 	}
 
-	std::thread t([this]() { impl->run(); });
+	impl->running = true;
+	impl->runner = std::make_unique<std::thread>([this]() { impl->run(); });
 	if (!detach){
-		t.join();
+		impl->runner->join();
 	}
 }
 
 void LibCamLite::Impl::run(){
-	while (true) {
+	while (running) {
 		RPiCamEncoder::Msg msg = app->Wait();
 		if (msg.type == RPiCamApp::MsgType::Timeout)
 		{
@@ -136,8 +140,10 @@ void LibCamLite::Impl::run(){
 }
 
 void LibCamLite::stop(){
+	impl->running = false;
 	impl->app->StopCamera(); // stop complains if encoder very slow to close
 	impl->app->StopEncoder();
+	impl->runner->join();
 }
 
 
