@@ -28,13 +28,13 @@ class LibCamLite::Impl {
 LibCamLite::LibCamLite():impl(new Impl){}
 
 void LibCamLite::setupLowresStream(LowResParams lowresParams, LowResCallback callback){
-	printf("Setup lowres %dx%d\n", lowresParams.stream.width, lowresParams.stream.height);
+	//printf("Setup lowres %dx%d\n", lowresParams.stream.width, lowresParams.stream.height);
 	impl->lowResParams = std::make_unique<LowResParams>(lowresParams);
 	impl->lowResCallback = callback;
 }
 
 void LibCamLite::setupH264Stream(H264Params h264Params, H264Callback callback){
-	printf("Setup h264 %dx%d profile %s\n", h264Params.stream.width, h264Params.stream.height, h264Params.profile.c_str());
+	//printf("Setup h264 %dx%d profile %s\n", h264Params.stream.width, h264Params.stream.height, h264Params.profile.c_str());
 	impl->h264Params = std::make_unique<H264Params>(h264Params);
 	impl->h264Callback = callback;
 }
@@ -44,6 +44,7 @@ void LibCamLite::start(bool detach){
 						//
 	// From here we provide some sane defaults for libcamera - non-customizeable
 	VideoOptions *options = impl->app->GetOptions();
+	options->Parse(0,0);
 	// 0sec = run forever
 	TimeVal<std::chrono::milliseconds> tv;
 	tv.set("0sec");
@@ -78,6 +79,7 @@ void LibCamLite::start(bool detach){
 	}
 
 	if (impl->h264Params){
+	    //printf("Setup h264 %dx%d profile %s\n", impl->h264Params->stream.width, impl->h264Params->stream.height, impl->h264Params->profile.c_str());
 	    options->framerate = impl->h264Params->stream.framerate;
             options->width = impl->h264Params->stream.width;
             options->height = impl->h264Params->stream.height;
@@ -94,6 +96,7 @@ void LibCamLite::start(bool detach){
 		    };
             impl->app->SetEncodeOutputReadyCallback(cb);
 	}
+	//options->Print();
 
 	impl->app->OpenCamera();
 	impl->app->ConfigureVideo(RPiCamEncoder::FLAG_VIDEO_NONE);
