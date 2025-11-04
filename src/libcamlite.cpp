@@ -3,8 +3,8 @@
 #include <functional>
 #include <thread>
 
-#include "core/libcamera_app.h"
-#include "core/libcamera_encoder.h"
+#include "core/rpicam_app.hpp"
+#include "core/rpicam_encoder.hpp"
 
 #include "post_proc.hpp"
 
@@ -47,51 +47,53 @@ void LibCamLite::start(bool detach){
 						//
 	// From here we provide some sane defaults for libcamera - non-customizeable
 	VideoOptions *options = impl->app->GetOptions();
-	options->Parse(0,0);
+	int argc = 1;
+	const char* argv[] = {"libcamlite", nullptr};
+	options->Parse(argc, (char**)argv);
 	// 0sec = run forever
 	TimeVal<std::chrono::milliseconds> tv;
 	tv.set("0sec");
-	options->timeout = tv;
-	options->segment = 0;
-	options->roi = "0,0,0,0";
-	options->viewfinder_height = 0;
-	options->afMode = "default";
-	options->afWindow = "0,0,0,0";
-	options->hdr = false;
-	options->sharpness = 1;
-	options->afWindow = "0,0,0,0";
-	options->qt_preview = false;
-	options->preview = "0,0,0,0";
-	options->denoise = "auto";
-	options->codec = "h264";
-	options->metering = "centre";
-	options->exposure = "normal";
-	options->contrast = 1;
-	options->saturation = 1;
-	options->saturation = 1;
-	options->afRange = "normal";
-	options->afSpeed = "normal";
+	options->Set().timeout = tv;
+	options->Set().segment = 0;
+	options->Set().roi = "0,0,0,0";
+	options->Set().viewfinder_height = 0;
+	options->Set().afMode = "default";
+	options->Set().afWindow = "0,0,0,0";
+	options->Set().hdr = false;
+	options->Set().sharpness = 1;
+	options->Set().afWindow = "0,0,0,0";
+	options->Set().qt_preview = false;
+	options->Set().preview = "0,0,0,0";
+	options->Set().denoise = "auto";
+	options->Set().codec = "h264";
+	options->Set().metering = "centre";
+	options->Set().exposure = "normal";
+	options->Set().contrast = 1;
+	options->Set().saturation = 1;
+	options->Set().saturation = 1;
+	options->Set().afRange = "normal";
+	options->Set().afSpeed = "normal";
 	// include headers on every frame
-	options->inline_headers = true; 
+	options->Set().inline_headers = true; 
 
 	if (impl->lowResParams){
 		// libcamlite-params are given from here 
-		options->lores_height = impl->lowResParams->stream.height;
-		options->lores_width = impl->lowResParams->stream.width;
+		options->Set().lores_height = impl->lowResParams->stream.height;
+		options->Set().lores_width = impl->lowResParams->stream.width;
 		impl->proc = std::make_unique<PostProc>(impl->app.get(), impl->lowResCallback);
 	}
 
 	if (impl->h264Params){
 	    //printf("Setup h264 %dx%d profile %s\n", impl->h264Params->stream.width, impl->h264Params->stream.height, impl->h264Params->profile.c_str());
-	    options->framerate = impl->h264Params->stream.framerate;
-            options->width = impl->h264Params->stream.width;
-            options->height = impl->h264Params->stream.height;
+	    options->Set().framerate = impl->h264Params->stream.framerate;
+            options->Set().width = impl->h264Params->stream.width;
+            options->Set().height = impl->h264Params->stream.height;
 	    // h264-specific stuff below:
-            options->intra = impl->h264Params->intraPeriod;
-	    options->profile = impl->h264Params->profile;
+            options->Set().intra = impl->h264Params->intraPeriod;
+	    options->Set().profile = impl->h264Params->profile;
             Bitrate bitrate;
 	    bitrate.set(impl->h264Params->bitrate);
-            options->bitrate = bitrate;
+            options->Set().bitrate = bitrate;
 	    // lambda to cast void*mem to uint8_t*mem...
 	    std::function<void(void*, size_t, int64_t, bool)> cb = 
 		    [this](void* mem, size_t size, int64_t timestamp_us, bool keyframe) {

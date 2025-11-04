@@ -45,11 +45,11 @@ pkg_check_modules(libavutil REQUIRED libavutil)
 
 # TODO: Come back and use find package
 add_library( rpicamapp_libs SHARED IMPORTED )
-set_target_properties( rpicamapp_libs PROPERTIES IMPORTED_LOCATION "/usr/local/lib/aarch64-linux-gnu/rpicam_app.so")
+set_target_properties( rpicamapp_libs PROPERTIES IMPORTED_LOCATION "/usr/local/lib/aarch64-linux-gnu/librpicam_app.so")
 
 # TODO: Come back and use find package
 add_library( boostprog SHARED IMPORTED )
-set_target_properties( boostprog PROPERTIES IMPORTED_LOCATION "/usr/lib/aarch64-linux-gnu/libboost_program_options.so.1.74.0")
+set_target_properties( boostprog PROPERTIES IMPORTED_LOCATION "/usr/lib/aarch64-linux-gnu/libboost_program_options.so.1.83.0")
 
 target_link_libraries(camlite "${libavformat_LIBRARIES}")
 target_link_libraries(camlite "${libavutil_LIBRARIES}")

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/libcamera_app.h"
+#include "core/rpicam_app.hpp"
 #include "libcamlite.hpp"
 
 #include <mutex>
