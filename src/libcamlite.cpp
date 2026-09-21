@@ -1,5 +1,6 @@
 #include "libcamlite.hpp"
 
+#include <atomic>
 #include <functional>
 #include <thread>
 
@@ -23,7 +24,7 @@ class LibCamLite::Impl {
 	LowResCallback lowResCallback;
 	std::unique_ptr<PostProc> proc;
 	std::unique_ptr<std::thread> runner; 
-	bool running;
+	std::atomic<bool> running;
 
 	void run();
 };
@@ -121,6 +122,10 @@ void LibCamLite::start(bool detach){
 void LibCamLite::Impl::run(){
 	while (running) {
 		RPiCamEncoder::Msg msg = app->Wait();
+		// stop() stops the camera underneath us, which surfaces here as a
+		// timeout; don't "recover" by restarting it during shutdown.
+		if (!running)
+			return;
 		if (msg.type == RPiCamApp::MsgType::Timeout)
 		{
 			LOG_ERROR("ERROR: Device timeout detected, attempting a restart!!!");
@@ -142,10 +147,15 @@ void LibCamLite::Impl::run(){
 }
 
 void LibCamLite::stop(){
-	impl->running = false;
+	if (!impl->running.exchange(false))
+		return;
+	// Stop lowres delivery first so no callback runs while the camera tears down.
+	if (impl->proc)
+		impl->proc->Stop();
 	impl->app->StopCamera(); // stop complains if encoder very slow to close
 	impl->app->StopEncoder();
-	impl->runner->join();
+	if (impl->runner && impl->runner->joinable())
+		impl->runner->join();
 }
 
 
