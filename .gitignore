@@ -32,3 +32,6 @@
 *.app
 
 build
+
+# cross/build.sh output
+build-aarch64/

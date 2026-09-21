@@ -5,14 +5,27 @@ This is particularly useful in cv workflows, where we both want a compressed str
 
 
 ## Prerequisites
-To build this library you will need to build libcamera and rpicam-apps.  We currently are building against the following versions:
+Previously rpicam-apps on pi os was too old. As of trixie everything comes from the apt repo:
 
-rpicam-apps build: 1.9.1
-libcamera build: v0.5.2+99-bfd68f78
+```
+sudo apt install -y build-essential cmake pkg-config \
+    libcamera-dev librpicam-app-dev libboost-program-options-dev \
+    libavformat-dev libavcodec-dev libavutil-dev
+```
 
-Although it is best to follow their individual guides, here's a brief summary of what it takes:
+libcamlite needs rpicam-apps 1.9.1 or newer; it is currently tested with rpicam-apps
+1.13.0 and libcamera 0.7.2. CMake checks the rpicam-apps version and stops with an
+error if it is too old; `sudo apt full-upgrade` to get a current one.
 
-### Build libcamera
+Warning: in the past rpicam-apps has changed its C++ API between releases without changing its library
+version (`librpicam_app.so.1`), so rebuild libcamlite after rpicam-apps updates.
+
+### Building libcamera and rpicam-apps from source (optional)
+Only needed if your OS ships an rpicam-apps older than 1.9.1, or you want unreleased
+changes. Source installs go to `/usr/local`, which CMake prefers over the apt
+packages. It is best to follow their individual guides; roughly:
+
+#### libcamera
 Follow the instructions under "Getting Started" in the libcamera git page, roughly:
 
 ```
@@ -29,7 +42,7 @@ meson setup build --buildtype=release -Dpipelines=rpi/vc4,rpi/pisp -Dipas=rpi/vc
 ninja -C build install
 ```
 
-### Build rpicam-apps
+#### rpicam-apps
 Follow the instructions under https://www.raspberrypi.com/documentation/computers/camera_software.html#building-rpicam-apps
 
 ```
@@ -47,18 +60,36 @@ sudo meson install -C build
 You can build as follows:
 
 ```
-  mkdir build
-  cd build
-  cmake ..
-  make
+  cmake -S . -B build
+  cmake --build build -j4
 ```
 
-On very constrained platforms, such as the pi zero 2W, I recommend setting up a cross compiler.  Roughly the easiest way I have found to do this is:
-  - Make an ubuntu vm
-  - use sbuild/chroot to make a bullseye arm64 environment
-  - apt install all needed dependencies
+This produces `build/libcamlite.so` and the `build/vid_test` demo.
 
-This will be slower than, say, native per core - but given enough cores and ram it will allow libcamera, rpicam-apps, and libcamlite to all build in minutes rather than hours.
+### Cross-compiling (recommended for the Pi Zero 2 W)
+Building on a Pi Zero 2 W is slow, so there is a cross build that runs on any
+x86_64 Linux machine with podman or docker:
+
+```
+cross/build.sh
+```
+
+This produces `build-aarch64/libcamlite.so` and `build-aarch64/vid_test` for any 64-bit
+Raspberry Pi OS trixie board. The first run creates a Debian trixie container with the
+arm64 libcamera / rpicam-apps / ffmpeg packages from the Raspberry Pi archive (about a
+minute); after that a full rebuild takes seconds. Run `cross/build.sh --pull` after
+updating your Pis so it builds against the same package versions they have.
+
+To use your own cross environment instead, pass the toolchain file to CMake:
+`cmake -S . -B build-aarch64 -DCMAKE_TOOLCHAIN_FILE=cross/aarch64-linux-gnu.cmake`.
+It expects Debian multiarch (arm64 dev packages installed alongside the host's).
+
+To try it on a Pi:
+
+```
+scp build-aarch64/libcamlite.so build-aarch64/vid_test pi:
+ssh pi 'LD_LIBRARY_PATH=. ./vid_test'
+```
 
 ## Demo
 

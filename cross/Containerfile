@@ -1,0 +1,28 @@
+# Cross-compilation environment for libcamlite: x86_64 host -> arm64 Raspberry Pi OS (trixie).
+#
+# Debian multiarch provides the arm64 dev packages, so libcamlite builds against
+# exactly the libcamera / rpicam-apps / ffmpeg versions the Pis run. Keep the Pis
+# current (apt full-upgrade) and rebuild this image when Raspberry Pi updates them
+# (cross/build.sh --pull).
+#
+# The RPi archive is pinned low except for the camera and ffmpeg stacks: its rpt
+# rebuilds of common libs (libssl, ...) would otherwise conflict with the amd64
+# copies multiarch needs at identical versions. Pins on foreign-arch packages only
+# match with an explicit :arm64 suffix.
+FROM docker.io/library/debian:trixie
+
+ENV DEBIAN_FRONTEND=noninteractive
+COPY raspberrypi-archive-keyring.pgp /usr/share/keyrings/raspberrypi-archive-keyring.pgp
+RUN dpkg --add-architecture arm64 \
+ && printf 'Types: deb\nURIs: http://archive.raspberrypi.com/debian/\nSuites: trixie\nComponents: main\nArchitectures: arm64\nSigned-By: /usr/share/keyrings/raspberrypi-archive-keyring.pgp\n' \
+      > /etc/apt/sources.list.d/raspi.sources \
+ && RPT='/^(libcamera|libpisp|librpicam|rpicam|libav|libsw|libpostproc)/' \
+ && printf 'Package: %s:arm64\nPin: origin archive.raspberrypi.com\nPin-Priority: 600\n\nPackage: %s\nPin: origin archive.raspberrypi.com\nPin-Priority: 600\n\nPackage: *\nPin: origin archive.raspberrypi.com\nPin-Priority: 100\n' "$RPT" "$RPT" \
+      > /etc/apt/preferences.d/raspi \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates cmake make pkgconf file \
+      g++-aarch64-linux-gnu libc6-dev-arm64-cross \
+      libcamera-dev:arm64 librpicam-app-dev:arm64 libboost-program-options-dev:arm64 \
+      libavformat-dev:arm64 libavcodec-dev:arm64 libavutil-dev:arm64 \
+ && rm -rf /var/lib/apt/lists/*
